@@ -45,13 +45,13 @@ A union is a collection where only one value can be present at a time. It is rep
 Alternative syntax for better compatibility:
 ```
 {
-    "__uniontype__": "type1",
+    "#type": "type1",
     "key": "value"
 }
 ```
 This syntax allows a normal JSON parser to parse the object, but won't output the correct results without a custom deserializer.
 
-### Array
+### List
 
 A collection of values -> `[ "value1", "value2" ]`
 ```
@@ -82,7 +82,7 @@ struct MyStruct {
     boolValue: boolean,
     numberValue: number,
     stringValue: string,
-    structValue: Option<MyStruct>,
+    unionValue: Option<MyStruct>,
 }
 
 union Option<T> {
@@ -99,12 +99,12 @@ Here are some representations of MyStruct with some sample values:
   "boolValue": true,
   "numberValue": 14,
   "stringValue": "Foo",
-  "structValue": #some {
+  "unionValue": #some {
     "nullValue": null,
     "boolValue": false,
     "numberValue": -1.618,
     "stringValue": "Bar",
-    "structValue": #none {}
+    "unionValue": #none {}
   }
 }
 ```
@@ -116,6 +116,6 @@ If a union variant has no fields, the braces can be omitted:
   "boolValue": false,
   "numberValue": -1.618,
   "stringValue": "Bar",
-  "structValue": #none
+  "unionValue": #none
 }
 ```
