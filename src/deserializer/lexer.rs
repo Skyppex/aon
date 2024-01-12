@@ -1,10 +1,13 @@
 use std::vec;
 
-use crate::representation::value::Number;
+use crate::{
+    representation::value::Number,
+    error::{AonError, Result}
+};
 
 use super::{cursor, tokens::{Token, self}};
 
-pub fn parse_node(aon: &str) -> Result<Vec<Token>, String> {
+pub fn tokenize(aon: &str) -> Result<Vec<Token>> {
     let mut tokens = vec![];
     let mut cursor = cursor::Cursor::new(aon);
 
@@ -13,10 +16,11 @@ pub fn parse_node(aon: &str) -> Result<Vec<Token>, String> {
         tokens.push(token);
     }
 
+    tokens.push(Token::EOF);
     Ok(tokens)
 }
 
-fn tokenize_next(cursor: &mut cursor::Cursor) -> Result<Token, String> {
+fn tokenize_next(cursor: &mut cursor::Cursor) -> Result<Token> {
     return match cursor.first() {
         tokens::SLASH => {
             cursor.bump();
@@ -36,7 +40,7 @@ fn tokenize_next(cursor: &mut cursor::Cursor) -> Result<Token, String> {
 
                     Ok(Token::Comment(comment))
                 }
-                _ => return Err(format!("Unexpected character: {}", cursor.first())),
+                _ => return Err(AonError::UnexpectedCharacter(cursor.first())),
             }
         }
 
@@ -127,10 +131,25 @@ fn tokenize_next(cursor: &mut cursor::Cursor) -> Result<Token, String> {
 
             match Number::new(&number) {
                 Some(n) => Ok(Token::Number(n)),
-                None => Err(format!("Invalid number: {}", number)),
+                None => Err(AonError::InvalidNumber(number)),
             }
         }
 
-        other => Err("Unexpected character: ".to_owned() + &other.to_string()),
+        other if other == 'n' => {
+            cursor.eat_text(tokens::NULL)?;
+            Ok(Token::Null)
+        }
+
+        other if other == 't' => {
+            cursor.eat_text(tokens::TRUE)?;
+            Ok(Token::Bool(true))
+        }
+
+        other if other == 'f' => {
+            cursor.eat_text(tokens::FALSE)?;
+            Ok(Token::Bool(false))
+        }
+
+        other => Err(AonError::UnexpectedCharacter(other)),
     };
 }

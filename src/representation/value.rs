@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Null,
@@ -7,6 +9,26 @@ pub enum Value {
     Struct(Vec<(String, Value)>),
     Union(String, Vec<(String, Value)>),
     Array(Vec<Value>),
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Null => write!(f, "null"),
+            Value::Bool(bool) => write!(f, "{}", bool),
+            Value::Number(number) => write!(f, "{}", number),
+            Value::String(string) => write!(f, "\"{}\"", string),
+            Value::Struct(kvp) => write!(f, "{{{}}}", format_object(kvp)),
+            Value::Union(union, kvp) => write!(f, "#{}:{}", union, format_object(kvp)),
+            Value::Array(_) => todo!(),
+        }
+    }
+}
+
+fn format_object(key_value_pairs: &Vec<(String, Value)>) -> String {
+    key_value_pairs.iter().map(|(name, value)| format!("\"{}\":{}", name, value))
+        .collect::<Vec<String>>()
+        .join(", ")
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -44,6 +66,18 @@ impl Number {
                     },
                 },
             },
+        }
+    }
+}
+
+impl Display for Number {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Number::PosInt(v) => write!(f, "{}", v),
+            Number::BigPosInt(v) => write!(f, "{}", v),
+            Number::NegInt(v) => write!(f, "{}", v),
+            Number::BigNegInt(v) => write!(f, "{}", v),
+            Number::Float(v) => write!(f, "{}", v),
         }
     }
 }

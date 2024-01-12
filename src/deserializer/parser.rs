@@ -1,19 +1,23 @@
-use crate::representation::Value;
+use crate::{representation::Value, error::{AonError, Result}};
 
 use super::tokens::Token;
 
-pub fn parse_tokens(tokens: &mut Vec<Token>) -> Result<Value, String> {
-    parse_primitive(tokens)
+pub fn parse_tokens(tokens: &Vec<Token>) -> Result<Value> {
+    parse_primitive(&mut tokens.clone())
 }
 
-fn parse_primitive(tokens: &mut Vec<Token>) -> Result<Value, String> {
+fn parse_list(tokens: &mut Vec<Token>) -> Result<Value> {
+    Ok(Value::Null)
+}
+
+fn parse_primitive(tokens: &mut Vec<Token>) -> Result<Value> {
     match first(&tokens) {
         Token::Word(string) => Ok(Value::String(string.to_owned())),
         Token::Number(number) => Ok(Value::Number(number.to_owned())),
         Token::Bool(boolean) => Ok(Value::Bool(*boolean)),
         Token::Null => Ok(Value::Null),
-        Token::EOF => Err("Unexpected EOF".to_owned()),
-        other => Err(format!("Unexpected token: {:?}", other)),
+        Token::EOF => Err(AonError::UnexpectedEndOfFile),
+        other => Err(AonError::UnexpectedToken(other.clone())),
     }
 }
 

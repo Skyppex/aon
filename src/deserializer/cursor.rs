@@ -1,6 +1,8 @@
 use std::str::Chars;
 
-pub struct Cursor<'a> {
+use crate::AonError;
+
+pub(crate) struct Cursor<'a> {
     pub aon: Chars<'a>,
 }
 
@@ -35,5 +37,15 @@ impl<'a> Cursor<'a> {
         while predicate(self.first()) && !self.is_eof() {
             self.bump();
         }
+    }
+
+    pub(crate) fn eat_text(&mut self, expected_text: &str) -> Result<(), AonError> {
+        for c in expected_text.chars() {
+            if self.first() != c {
+                return Err(AonError::UnexpectedCharacter(self.first()))
+            }
+        }
+
+        Ok(())
     }
 }
