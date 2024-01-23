@@ -4,6 +4,7 @@ use crate::representation::{Value, value::Number};
 
 use self::formatter::Formatter;
 
+#[macro_use]
 pub mod formatter;
 
 pub trait ToAon {
