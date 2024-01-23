@@ -53,6 +53,10 @@ impl Formatter {
             })
             .next()
     }
+
+    pub fn has_indented(&self, context: FormatContext) -> bool {
+        self.options.contains(&FormatOption::Indented(context))
+    }
 }
 
 impl Default for Formatter {
@@ -90,58 +94,24 @@ impl FormatBuilder {
         Self { options: HashMap::new() }
     }
 
-    pub fn new_line_before(mut self, context: FormatContext) -> Self {
-        match context {
-            FormatContext::List => {
-                self.options.insert(
-                    format!("{}{}", stringify!(new_line_before), FormatContext::List),
-                    FormatOption::NewLineBefore(FormatContext::List));
-            },
-            FormatContext::Struct => {
-                self.options.insert(
-                    format!("{}{}", stringify!(new_line_before), FormatContext::Struct),
-                    FormatOption::NewLineBefore(FormatContext::Struct));
-            }
-            FormatContext::Union => {
-                self.options.insert(
-                    format!("{}{}", stringify!(new_line_before), FormatContext::Union),
-                    FormatOption::NewLineBefore(FormatContext::Union));
-            },
-            FormatContext::All => {
-                self = self.new_line_before(FormatContext::List);
-                self = self.new_line_before(FormatContext::Struct);
-                self = self.new_line_before(FormatContext::Union);
-            },
-        }
+    pub fn new_line_before(self, context: FormatContext) -> Self {
+        self.match_context(context, |mut b: FormatBuilder, c| {
+            b.options.insert(
+                format!("{}{}", stringify!(new_line_before), c),
+                FormatOption::NewLineBefore(c));
 
-        self
+            b
+        })
     }
 
-    pub fn new_line_after(mut self, context: FormatContext) -> Self {
-        match context {
-            FormatContext::List => {
-                self.options.insert(
-                    format!("{}{}", stringify!(new_line_after), FormatContext::List),
-                    FormatOption::NewLineAfter(FormatContext::List));
-            },
-            FormatContext::Struct => {
-                self.options.insert(
-                    format!("{}{}", stringify!(new_line_after), FormatContext::Struct),
-                    FormatOption::NewLineAfter(FormatContext::Struct));
-            }
-            FormatContext::Union => {
-                self.options.insert(
-                    format!("{}{}", stringify!(new_line_after), FormatContext::Union),
-                    FormatOption::NewLineAfter(FormatContext::Union));
-            },
-            FormatContext::All => {
-                self = self.new_line_after(FormatContext::List);
-                self = self.new_line_after(FormatContext::Struct);
-                self = self.new_line_after(FormatContext::Union);
-            },
-        }
+    pub fn new_line_after(self, context: FormatContext) -> Self {
+        self.match_context(context, |mut b: FormatBuilder, c| {
+            b.options.insert(
+                format!("{}{}", stringify!(new_line_after), c),
+                FormatOption::NewLineAfter(c));
 
-        self
+            b
+        })
     }
 
     pub fn space_after_colon(mut self) -> Self {
@@ -154,31 +124,14 @@ impl FormatBuilder {
         self
     }
 
-    pub fn inline(mut self, context: FormatContext, max_size: usize) -> Self {
-        match context {
-            FormatContext::List => {
-                self.options.insert(
-                    format!("{}{}", stringify!(inline), FormatContext::List),
-                    FormatOption::Inline(FormatContext::List, max_size));
-            },
-            FormatContext::Struct => {
-                self.options.insert(
-                    format!("{}{}", stringify!(inline), FormatContext::Struct),
-                    FormatOption::Inline(FormatContext::Struct, max_size));
-            }
-            FormatContext::Union => {
-                self.options.insert(
-                    format!("{}{}", stringify!(inline), FormatContext::Union),
-                    FormatOption::Inline(FormatContext::Union, max_size));
-            },
-            FormatContext::All => {
-                self = self.inline(FormatContext::List, max_size);
-                self = self.inline(FormatContext::Struct, max_size);
-                self = self.inline(FormatContext::Union, max_size);
-            },
-        }
+    pub fn inline(self, context: FormatContext, max_size: usize) -> Self {
+        self.match_context(context, |mut b, c| {
+            b.options.insert(
+                format!("{}{}", stringify!(inline), c),
+                FormatOption::Inline(c, max_size));
 
-        self
+            b
+        })
     }
 
     pub fn json_compatible_unions(mut self) -> Self {
@@ -186,35 +139,49 @@ impl FormatBuilder {
         self
     }
 
-    pub fn trailing_comma(mut self, context: FormatContext, trailing_comma: bool) -> Self {
-        match context {
-            FormatContext::List => {
-                self.options.insert(
-                    format!("{}{}", stringify!(trailing_comma), FormatContext::List),
-                    FormatOption::TrailingComma(FormatContext::List, trailing_comma));
-            },
-            FormatContext::Struct => {
-                self.options.insert(
-                    format!("{}{}", stringify!(trailing_comma), FormatContext::Struct),
-                    FormatOption::TrailingComma(FormatContext::Struct, trailing_comma));
-            }
-            FormatContext::Union => {
-                self.options.insert(
-                    format!("{}{}", stringify!(trailing_comma), FormatContext::Union),
-                    FormatOption::TrailingComma(FormatContext::Union, trailing_comma));
-            },
-            FormatContext::All => {
-                self = self.trailing_comma(FormatContext::List, trailing_comma);
-                self = self.trailing_comma(FormatContext::Struct, trailing_comma);
-                self = self.trailing_comma(FormatContext::Union, trailing_comma);
-            },
-        }
-        
-        self
+    pub fn trailing_comma(self, context: FormatContext, trailing_comma: bool) -> Self {
+        self.match_context(context, |mut b, c| {
+            b.options.insert(
+                format!("{}{}", stringify!(trailing_comma), c),
+                FormatOption::TrailingComma(c, trailing_comma));
+
+            b
+        })
+    }
+
+    pub fn indented(self, context: FormatContext) -> Self {
+        self.match_context(context, |mut b, c| {
+            b.options.insert(
+                format!("{}{}", stringify!(indented), c),
+                FormatOption::Indented(c));
+
+            b
+        })
     }
 
     pub fn build(self) -> Formatter {
         Formatter { options: self.options.values().cloned().collect() }
+    }
+
+    fn match_context<F: Fn(Self, FormatContext) -> Self>(mut self, context: FormatContext, func: F) -> Self {
+        match context {
+            FormatContext::List => {
+                self = func(self, FormatContext::List);
+            },
+            FormatContext::Struct => {
+                self = func(self, FormatContext::Struct);
+            }
+            FormatContext::Union => {
+                self = func(self, FormatContext::Union);
+            },
+            FormatContext::All => {
+                self = func(self, FormatContext::List);
+                self = func(self, FormatContext::Struct);
+                self = func(self, FormatContext::Union);
+            },
+        }
+
+        self
     }
 }
 
@@ -233,6 +200,7 @@ enum FormatOption {
     Inline(FormatContext, usize),
     JsonCompatibleUnions,
     TrailingComma(FormatContext, bool),
+    Indented(FormatContext),
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
